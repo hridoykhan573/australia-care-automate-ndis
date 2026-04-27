@@ -39,7 +39,7 @@ st.divider()
 
 # --- SECTION 2: PROGRESS NOTE GENERATOR ---
 st.header("2. Progress Note Generator")
-st.info(""💡 Tip: Use the 🎤 icon on your mobile keyboard for easy voice typing!")
+st.info("💡 Tip: Use the 🎤 icon on your mobile keyboard for easy voice typing!")
 
 raw_notes = st.text_area(
     "What tasks did you complete today?", 
