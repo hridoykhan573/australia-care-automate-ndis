@@ -1,91 +1,101 @@
 import streamlit as st
 import openai
 
-try:
-    MY_OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
-except:
-    MY_OPENAI_KEY = ""
+# 1. Page Configuration (Mobile Friendly)
+st.set_page_config(
+    page_title="NDIS Care Automate",
+    page_icon="🤖",
+    layout="centered"
+)
 
-st.set_page_config(page_title="Australia Care Automate", layout="centered", page_icon="🇦🇺")
+# 2. Custom CSS for Mobile App Look
+st.markdown("""
+    <style>
+    /* Full width buttons */
+    .stButton>button {
+        width: 100%;
+        border-radius: 12px;
+        height: 3.5em;
+        background-color: #2E7D32;
+        color: white;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+    }
+    /* Input box styling */
+    .stTextArea textarea {
+        border-radius: 15px;
+        border: 1px solid #ddd;
+    }
+    /* Header styling */
+    .main-header {
+        font-size: 24px;
+        font-weight: bold;
+        color: #1E3A8A;
+        text-align: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- UI HEADER ---
-st.title("🇦🇺 Australia NDIS Report Helper")
-st.markdown("---")
+# 3. Secure API Key Loading (From Streamlit Secrets)
+# Make sure to add OPENAI_API_KEY in your Streamlit Dashboard Secrets!
+api_key = st.secrets.get("OPENAI_API_KEY")
 
-# --- SIDEBAR ---
-st.sidebar.header("Worker Profile")
-worker_name = st.sidebar.text_input("Worker Name", "Worker")
-st.sidebar.info("Goal: Automation for NDIS Care Workers 🚀")
+# 4. App Header
+st.markdown('<p class="main-header">🤖 NDIS AI Report Assistant</p>', unsafe_allow_html=True)
+st.write("---")
 
-# --- SECTION 1: SHIFT CALCULATOR ---
-st.header("1. Shift & Pay Calculator")
-col1, col2 = st.columns(2)
+# 5. Shift Pay Calculator Section
+with st.expander("💰 Shift Pay Calculator", expanded=False):
+    rate = st.number_input("Hourly Rate ($)", min_value=0.0, value=35.0)
+    hours = st.number_input("Total Hours Worked", min_value=0.0, value=8.0)
+    total_pay = rate * hours
+    st.success(f"Estimated Pay: ${total_pay:,.2f}")
 
-with col1:
-    start_time = st.time_input("Shift Start")
-with col2:
-    end_time = st.time_input("Shift End")
+# 6. AI Progress Note Section
+st.subheader("📝 Daily Progress Notes")
 
-rate = st.number_input("Hourly Rate (AUD)", min_value=0.0, value=62.0)
-
-duration = (end_time.hour + end_time.minute/60) - (start_time.hour + start_time.minute/60)
-if duration > 0:
-    total_pay = duration * rate
-    st.success(f"⏱️ Duration: {duration:.2f} hours | 💰 Total Pay: ${total_pay:.2f} AUD")
-else:
-    st.warning("⚠️ End time must be after start time.")
-
-st.divider()
-
-# --- SECTION 2: PROGRESS NOTE GENERATOR ---
-st.header("2. Progress Note Generator")
-st.info("💡 Tip: Use the 🎤 icon on your mobile keyboard for easy voice typing!")
+# Mic Instruction for Mobile Users
+st.info("💡 **Tip:** Tap the 🎤 icon on your mobile keyboard to speak your notes!")
 
 raw_notes = st.text_area(
     "What tasks did you complete today?", 
-    placeholder="e.g. Fed Mr. John lunch, went for 1 walk.",
-    height=200
+    placeholder="Example: Fed client breakfast, went for a 20 min walk, administered morning meds at 10 AM...",
+    height=250
 )
 
-# --- REPORT GENERATION ---
 if st.button("Generate Professional Report"):
-    if not raw_notes:
-        st.warning("⚠️ Please provide some notes first!")
+    if not api_key:
+        st.error("API Key not found! Please add it to Streamlit Secrets.")
+    elif not raw_notes.strip():
+        st.warning("Please enter some notes first.")
     else:
         try:
-           
-            client = openai.OpenAI(api_key=MY_OPENAI_KEY)
-            with st.spinner('AI processing...'):
+            client = openai.OpenAI(api_key=api_key)
+            
+            with st.spinner("AI is writing your report..."):
                 response = client.chat.completions.create(
-                    model="gpt-4o-mini",
+                    model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "You are a professional NDIS caregiver. Convert notes into a formal SOAP report."},
+                        {"role": "system", "content": "You are a professional NDIS care worker assistant. Convert raw notes into a formal, clinical SOAP report (Subjective, Objective, Assessment, Plan) using professional English."},
                         {"role": "user", "content": raw_notes}
                     ]
                 )
-                final_report = response.choices[0].message.content
-                st.subheader("✅ Professional AI Report:")
-                st.markdown(f"```\n{final_report}\n```")
-                st.download_button("Download AI Report", final_report, file_name="NDIS_Report.txt")
+                
+                report = response.choices[0].message.content
+                st.subheader("✅ Professional Report")
+                st.markdown(f"```\n{report}\n```")
+                
+                # Download Button
+                st.download_button(
+                    label="📥 Download Report as TXT",
+                    data=report,
+                    file_name="NDIS_Progress_Note.txt",
+                    mime="text/plain"
+                )
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
 
-        except Exception:
-            st.warning("💡 Professional Format Activated (Standard Mode)")
-            backup_report = f"""
-NDIS PROGRESS NOTE
-----------------------------------
-DATE: 2026-04-28
-WORKER: {worker_name}
-
-SUBJECTIVE: Client was engaged and cooperative.
-OBJECTIVE: {raw_notes}
-ASSESSMENT: Support plan followed. No incidents.
-PLAN: Continue scheduled care.
-----------------------------------
-            """
-            st.subheader("✅ Professional Report:")
-            st.markdown(f"```\n{backup_report}\n```")
-            st.download_button("Download Report", backup_report, file_name="Report.txt")
-
-# --- FOOTER ---
-st.sidebar.markdown("---")
-st.sidebar.write("Developed for Australian Healthcare Automation.")
+# 7. Footer
+st.markdown("---")
+st.caption("Developed by Hridoy Khan | Secure & Private")
