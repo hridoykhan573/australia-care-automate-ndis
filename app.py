@@ -1,8 +1,6 @@
 import streamlit as st
 import openai
 
-# --- CONFIGURATION (SECURE WAY) ---
-# GitHub-e key thakbe na, ekhon theke key thakbe Streamlit Cloud-er Secrets-e
 try:
     MY_OPENAI_KEY = st.secrets["OPENAI_API_KEY"]
 except:
@@ -41,10 +39,10 @@ st.divider()
 
 # --- SECTION 2: PROGRESS NOTE GENERATOR ---
 st.header("2. Progress Note Generator")
-st.info("💡 Tip: Mobile theke keyboard-er 🎤 icon-ti chepe kotha bolun!")
+st.info(""💡 Tip: Use the 🎤 icon on your mobile keyboard for easy voice typing!")
 
 raw_notes = st.text_area(
-    "Ajke ki ki kaj korechen?", 
+    "What tasks did you complete today?", 
     placeholder="e.g. Fed Mr. John lunch, went for 1 walk.",
     height=200
 )
@@ -55,7 +53,7 @@ if st.button("Generate Professional Report"):
         st.warning("⚠️ Please provide some notes first!")
     else:
         try:
-            # Secrets theke key niye AI call korbe
+           
             client = openai.OpenAI(api_key=MY_OPENAI_KEY)
             with st.spinner('AI processing...'):
                 response = client.chat.completions.create(
